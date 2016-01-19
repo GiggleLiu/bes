@@ -1,0 +1,112 @@
+\documentclass[prb,twocolumn,showpacs,superscriptaddress]{revtex4-1}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{epsfig}
+\usepackage{bm}
+\usepackage[normalem]{ulem}
+\usepackage[colorlinks,linkcolor=blue,anchorcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\renewcommand{\v}[1]{{\bf #1}}
+\newcommand{\Eq}[1]{Eq.~\ref{#1}}
+\newcommand{\Fig}[1]{Fig.\ref{#1}}
+\newcommand{\Ref}[1]{Ref.\onlinecite{#1}}
+\newcommand{\Tr}{{\rm Tr}}
+\newcommand{\Det}{{\rm Det}}
+\renewcommand{\Im}{{\rm Im}}
+\renewcommand{\Re}{{\rm Re}}
+%\newcommand{\ch}{{\rm ch}}
+%\newcommand{\sh}{{\rm sh}}
+
+
+\usepackage{color}
+\newcommand {\B}{\textcolor {blue}}
+\newcommand {\R}{\textcolor {red}}
+\newcommand{\Comment}[1]{\textcolor{red}{#1}}
+\newcommand{\Insert}[1]{\textcolor{blue}{#1}}
+\newcommand{\tk}{\tilde{\mathbf{k}}}
+\renewcommand{\k}{\mathbf{k}}
+\newcommand{\tb}{\tilde{\mathbf{b}}}
+\newcommand{\bv}{\mathbf{b}}
+\newcommand{\x}{\mathbf{x}}
+\newcommand{\tx}{\tilde{\mathbf{x}}}
+\newcommand{\sig}{\mathbf{\sigma}}
+% Journal reference.  Comma sets off: name, vol, page, year
+%\def\journal #1, #2, #3, 1#4#5#6{{\sl #1~}{\bf #2}, #3 (1#4#5#6) }
+%\def\pr{\journal Phys. Rev., }
+%\def\prb{\journal Phys. Rev. B, }
+%\def\prl{\journal Phys. Rev. Lett., }
+%\def\pl{\journal Phys. Lett., }
+%\def\np{\journal Nucl. Phys., }
+
+\begin{document}
+
+\title{Numerical Methods for Bulk Entanglement Spectrum}
+
+\author{Jin-Guo Liu}
+\affiliation{National Laboratory of Solid State Microstructures $\&$ School of Physics, Nanjing
+University, Nanjing, 210093, China}
+
+%\date{\today}
+
+%\pacs{72.15.Qm, 72.10.Fk, 74.20.-z, 71.27.+a}
+%
+%74.20.-z  Theories and models of superconducting state
+%64.60.ae  Renormalization-group theory
+
+\maketitle
+
+\section{Deduction of Tracing Procedure}
+
+\begin{figure}
+\includegraphics[width=8.5cm]{lattice.eps}
+\caption{The lattice configuration, the lattice sites in A are colored in black while those in B in red.
+$\x$ in blue is used to label the position of blocks(inter-block label). The block spacing is $L\times L$ and the size of A-block is $S\times S$.}
+\label{lattice}
+\end{figure}
+
+This note is an improved deduction of the main result in \Ref{Hsieh2014}.
+The target is to get the bilinear expectation value $\langle c^\dag_{\k\sig} c_{\k\sig'}\rangle$ for region A in Fig.\ref{lattice},
+with $\k$ the k-vector for block position $\x$ and $\sig$ is the inna-block index
+(it is different with the k-vector $\tk$ which is for site position $\tx$).
+
+The first step is to express $c_{\k,\sig}$ in terms of $c_{\tk}$.
+Here, the inna-block label $\sig$ is also the relative site position with respect to $\x$(the number of possible values of $\sig$ is $S\times S$).
+In other words, $\x+\sig$ is the global position of a site($\tx$).
+
+With $N_0$ the number of sites and $N(=N_0/L^2)$ the number of blocks, we have
+\begin{align}
+    c_{\k,\sig}&=\frac{1}{\sqrt{N}}\sum\limits_{\x}e^{-i\k\x}c_{\x\sig}\\
+                &=\frac{1}{\sqrt{NN_0}}\sum\limits_{\x}e^{-i\k\x}\left(\sum\limits_{\tk}e^{i\tk(\sig+\x)}c_{\tk}\right)\\
+                &=\frac{1}{\sqrt{NN_0}}\sum\limits_{\tk}\left(\sum\limits_{\x}e^{i(\tk-\k)\x}\right)e^{i\tk \sig}c_{\tk}
+\end{align}
+Up to now, the deduction is straight forward, then we are going to to evaluate the equation in the parentheses.
+
+Soon we notice that only those $\tk$s 'equivalent' to $\k$ will contribute to the above equation, that is
+\begin{align}
+    c_{\k,\sig}=\sqrt{\frac{N}{N_0}}\sum\limits_{\tk}\delta(\tk-\k-n_1\bv_1-n_2\bv_2)e^{i\tk \sig}c_{\tk}
+\end{align}
+with $n_1,n_2$ arbituary integers.
+
+To find out these equivalent points, take a glance of the first Bruillouin zones as shown in Fig.\ref{bzone},
+\begin{figure}
+\includegraphics[width=8.5cm]{bzone.eps}
+\caption{The first Brillouin zones for site space(with unit vector $\tb$) and block space(with unit vector $\bv$),
+momentum equivalent to $\Gamma$ with respect to $\bv$ are colored in red, the collection of these points is $\Gamma^*$.}
+\label{bzone}
+\end{figure}
+
+The number of members in $\Gamma^*$ is $2L\times L$ and they are $n_1\bv_1+n_2\bv_2$.
+Thus we have,
+\begin{align}
+    c_{\k,\sig}=\sqrt{\frac{N}{N_0}}\sum\limits_{\tk-\k\in\Gamma^*}e^{i\tk \sig}c_{\tk}
+\end{align}
+
+Then, it is straight forward to express a bilinear operator after the above tracing procedure,
+\begin{align}
+    \langle c^\dag_{\k\sig} c_{\k\sig'}\rangle=\frac{N}{N_0}\sum\limits_{\tk-\k\in\Gamma^*}e^{i\tk(\sig'-\sig)}\langle c_{\tk}^\dag c_{\tk}\rangle
+\end{align}
+
+\bibliography{ref}
+
+\end{document}

@@ -9,106 +9,8 @@ from numpy.linalg import norm,eigh
 from matplotlib.pyplot import *
 import pdb
 
-from rglib.mps.utils import bcast_dot
 from tba.lattice import meshgrid_v,c2ind,toreciprocal,KSpace
 from tba.hgen import sx,sy,sz,Hmesh
-
-def fermi(elist,T=0):
-    '''
-    Fermi statistics, python implimentation.
-
-    Parameters:
-        :elist: float/ndarray, the energy.
-        :T: float, the temperature.
-
-    Return:
-        float/ndarray, Fermionic disctribution.
-    '''
-    elist=asarray(elist)
-    if T<0.:
-        raise ValueError('Negative temperature is not allowed!')
-    elif T==0:
-        if ndim(elist)!=0:
-            f=zeros(elist.shape,dtype='float64')
-            f[elist<0]=1.
-            f[elist==0]=0.5
-            return f
-        else:
-            if elist>0:
-                return 0.
-            elif elist==0:
-                return 0.5
-            else:
-                return 1.
-    else:
-        f=1./(1.+exp(-abs(elist)/T))
-        if ndim(elist)!=0:
-            posmask=elist>0
-            f[posmask]=1.-f[posmask]
-        elif elist>0:
-            f=1.-f
-        return f
-
-def tokspace(mesh,axes):
-    '''
-    Transform a mesh defined on real-space to k-space.
-
-    Parameters:
-        :mesh: ndarray, the input mesh.
-        :axes: tuple/list, the axes to perform fourier transition.
-
-    Return:
-        The transformed mesh on dk.
-    '''
-    kmesh=fft.fftn(mesh,axes=axes)
-    return kmesh
-
-def torspace(mesh,axes):
-    '''
-    Transform a mesh defined on k-space to real-space.
-
-    Parameters:
-        :mesh: ndarray, the input mesh.
-        :axes: tuple/list, the axes to perform fourier transition.
-
-    Return:
-        The transformed mesh on dr.
-    '''
-    rmesh=fft.ifftn(mesh,axes=axes)
-    return rmesh
-
-def Ck(E,U,T=0):
-    '''
-    Get the expectation matrix in k-space.
-
-    Parameters:
-        :E,U: ndarray, the eigenvalues and eigenvectors defined on real space.
-        ndim(E)>=2 and ndim(U)=ndim(E)+1.
-
-    Return:
-        ndarray, the expectation matrix(the expectation mesh of <ck^\dag,ck>)
-    '''
-    assert(ndim(E)>=1 and ndim(U)==ndim(E)+1)
-    fm=fermi(E,T=T)
-    F=bcast_dot((U*fm[...,newaxis,:]),swapaxes(U.conj(),-1,-2))
-    return swapaxes(F,-1,-2)
-
-def C2H(C,T=1.):
-    '''
-    Get the entanglement hanmiltonian from expectation matrix.
-
-    Parameters:
-        :C: ndarray, the expectation matrix.
-        :T: float, the temperature.
-
-    Return:
-        ndarray, the hamiltonian.
-    '''
-    CE,CU=eigh(C)
-    print CE.min(),CE.max()
-    assert(all(CE>0) and all(CE<1))
-    H=bcast_dot(swapaxes(CU,-1,-2).conj()*(log(1./CE-1)*T)[...,newaxis,:],CU).conj()
-    return H
 
 class Percolation(object):
     '''
@@ -151,12 +53,13 @@ class Percolation(object):
             ia1=self.L*array([1.,0])
             ia2=self.L*array([0,1.])
         xmesh=meshgrid_v([arange(nblock[0]),arange(nblock[1])],(ia1,ia2))
-        return xmesh
+        return int32(xmesh)
 
     def resize(self,size):
         '''resize the A region.'''
         self._size=array(size)
         globaloffset=-(self.size/2)
+        globaloffset=zeros(2,dtype='int32')
         self.offsets=meshgrid_v(siteconfig=[arange(si)+offset for offset,si in zip(globaloffset,self.size)],vecs=array([(0,1),(1,0)]))
 
     def get_block(self,x):
@@ -184,25 +87,35 @@ class Percolation(object):
         b=toreciprocal(a)
         ks=KSpace(b,N=self.lattice.N/L)
         ks.special_points['X']=array([b[0]/2.,b[1]/2.,-b[0]/2.,-b[1]/2.])
-        ks.special_points['M']=array([(b[0]+b[1])/2.,(b[0]-b[1])/2.,(-b[0]+b[1])/2.,(-b[0]-b[1])/2.])
+        ks.special_points['M']=array([(b[0]+b[1])/2.,(b[0]-b[1])/2.,(-b[0]-b[1])/2.,(-b[0]+b[1])/2.])
         return ks
 
     def show_lattice(self):
         '''display the lattice.'''
         self.lattice.show_sites(plane=(0,1),color='r')
         xmesh=self.xmesh
+        sitel=[]
+        xl=[]
         for i in xrange(xmesh.shape[0]):
             for j in xrange(xmesh.shape[1]):
-                sites=self.lattice.sites[self.get_block(x=xmesh[i,j]%self.lattice.N)]
-                scatter(sites[:,0],sites[:,1],color=random.random(4))
+                x=xmesh[i,j]%self.lattice.N
+                sites=self.lattice.sites[self.get_block(x=x)]
+                sitel.append(sites)
+                xl.append(x)
+        sites=concatenate(sitel,axis=0)
+        xs=array(xl)
+        scatter(sites[:,0],sites[:,1],color='y')
+        scatter(xs[:,0],xs[:,1],color='b')
+        legend(['B','A','x'])
 
-    def reduce_C(self,C0):
+    def reduce_r(self,C0):
         '''
         Get the reduced density matrix.
 
         Parameters:
             :C0: ndarray, the density matrix defined in real space.
         '''
+        raise NotImplementedError()
         assert(ndim(C0)==4)
         dimention=self.lattice.dimension
         N=self.lattice.N
@@ -221,21 +134,21 @@ class Percolation(object):
         C=swapaxes(C,3,4).reshape(list(xmesh.shape[:-1])+[ncell*nband]*2)
         return C
 
-    def reduce_Ck(self,Cfunc,klist):
+    def reduce_k(self,Cfunc,klist):
         '''
-        Get the new C matrix for specific k.
+        Get the new C+\dag C type operator(like non-interacting Hamiltonian) for specific k.
 
         Parameters:
             :Cfunc: function, Cfunc(k) gives the expectation matrix at k.
             :klist: ndarray(Nk,vdim), the k-space.
+
+        Return:
+            The reduced operator.
         '''
         nband=Cfunc(zeros(2)).shape[-1]
         ncell=prod(self.size)
-        #slist=meshgrid_v(([arange(l) for l in self.size]),vecs=self.lattice.a).reshape([-1,self.lattice.a.shape[-1]])
         offsets=self.offsets.reshape([-1,self.lattice.dimension])
         slist=offsets[:,0,newaxis]*self.lattice.a[0]+offsets[:,1,newaxis]*self.lattice.a[1]
-        #scatter(slist[:,0],slist[:,1])
-        #pdb.set_trace()
         #get the equivalent k-points.
         b=toreciprocal(self.lattice.a*self.L[:,newaxis])
         Q=(b[0]+b[1])/2.
@@ -251,6 +164,4 @@ class Percolation(object):
             for s1 in xrange(ncell):
                 for s2 in xrange(ncell):
                     C[ik,s1,s2]=sum([ci*exp(1j*(k+q).dot(slist[s2]-slist[s1])) for ci,q in zip(cs,equivk)],axis=0)/prod(self.L)/(1. if self.form=='#' else 2.)
-                    #print [ci*exp(1j*(k+q).dot(slist[s2]-slist[s1])) for ci,q in zip(cs,equivk)]
-                    #pdb.set_trace()
         return swapaxes(C,2,3).reshape([len(klist),ncell*nband,ncell*nband])

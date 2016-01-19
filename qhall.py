@@ -18,7 +18,7 @@ class QuantumHall(object):
         :lamb: float, strength of the SOC term.
         :mu: float, the chemical potential.
     '''
-    def __init__(self,t,lamb,mu):
+    def __init__(self,t,lamb,mu,N=(100,100)):
         self.t=t
         self.lamb=lamb
         self.mu=mu
@@ -33,7 +33,7 @@ class QuantumHall(object):
             })
 
         #define a structure and initialize bonds.
-        rlattice=Square_Lattice(N=(100,100),catoms=[zeros(2)])
+        rlattice=Square_Lattice(N=N,catoms=[zeros(2)])
         hgen.uselattice(rlattice)
 
         b1s=rlattice.cbonds[1]  #the nearest neighbor
